@@ -9,17 +9,11 @@ COPY package*.json ./
 # Устанавливаем зависимости
 RUN npm install
 
-# DEBUG: Покажем что есть перед копированием
-RUN echo "=== Before COPY ===" && ls -la
+# Копируем ВСЕ файлы из context (frontend/)
+COPY . .
 
-# Копируем все файлы проекта
-COPY public/ ./public/
-COPY src/ ./src/
-
-# DEBUG: Покажем что скопировалось
-RUN echo "=== After COPY ===" && ls -la && \
-    echo "=== Contents of public/ ===" && ls -la public/ && \
-    echo "=== Contents of src/ ===" && ls -la src/
+# DEBUG
+RUN ls -la && ls -la public/ && ls -la src/
 
 # Собираем приложение
 RUN npm run build
