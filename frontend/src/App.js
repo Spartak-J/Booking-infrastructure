@@ -1,4 +1,3 @@
-import React from 'react';
 import './App.css';
 
 function App() {
@@ -6,7 +5,7 @@ function App() {
     <div className="App">
       <header className="App-header">
         <h1>Booking Oselya</h1>
-        <p>Hotel Booking System - Coming Soon!</p>
+        <p>Hotel Booking System</p>
       </header>
     </div>
   );
