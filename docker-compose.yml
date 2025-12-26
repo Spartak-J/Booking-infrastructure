@@ -1,0 +1,64 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: booking_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: booking_oselya
+      POSTGRES_USER: booking_admin
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - booking_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U booking_admin -d booking_oselya"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    container_name: booking_backend
+    restart: always
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: booking_oselya
+      DB_USER: booking_admin
+      DB_PASSWORD: ${DB_PASSWORD}
+    networks:
+      - booking_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    container_name: booking_frontend
+    restart: always
+    networks:
+      - booking_network
+    depends_on:
+      - backend
+
+  nginx:
+    image: nginx:alpine
+    container_name: booking_nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - booking_network
+    depends_on:
+      - backend
+      - frontend
+
+networks:
+  booking_network:
+    name: booking_network
+    driver: bridge
+
+volumes:
+  postgres_data:
