@@ -1,0 +1,9 @@
+{
+  "short_name": "Booking Oselya",
+  "name": "Booking Oselya Hotel System",
+  "icons": [],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#000000",
+  "background_color": "#ffffff"
+}
