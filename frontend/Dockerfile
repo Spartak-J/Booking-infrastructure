@@ -3,14 +3,15 @@ FROM node:18-alpine as build
 
 WORKDIR /app
 
-# Копируем package.json
+# Копируем package files
 COPY package*.json ./
 
 # Устанавливаем зависимости
 RUN npm install
 
-# Копируем исходный код
-COPY . .
+# Копируем все файлы проекта
+COPY public/ ./public/
+COPY src/ ./src/
 
 # Собираем приложение
 RUN npm run build
