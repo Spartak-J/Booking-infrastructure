@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
     container_name: booking_postgres
@@ -22,7 +21,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # RabbitMQ Message Broker
   rabbitmq:
     image: rabbitmq:3.12-management-alpine
     container_name: booking_rabbitmq
@@ -43,7 +41,6 @@ services:
       timeout: 10s
       retries: 5
 
-  # User API Service
   user-api:
     build:
       context: ../Booking-app/Booking-app/backend
@@ -58,8 +55,6 @@ services:
       RabbitMQ__Port: 5672
       RabbitMQ__Username: guest
       RabbitMQ__Password: guest
-    ports:
-      - "5001:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -68,7 +63,6 @@ services:
     networks:
       - booking_network
 
-  # Offer API Service
   offer-api:
     build:
       context: ../Booking-app/Booking-app/backend
@@ -83,8 +77,6 @@ services:
       RabbitMQ__Port: 5672
       RabbitMQ__Username: guest
       RabbitMQ__Password: guest
-    ports:
-      - "5002:8080"
     volumes:
       - offer_images:/app/wwwroot/images
     depends_on:
@@ -95,7 +87,6 @@ services:
     networks:
       - booking_network
 
-  # Order API Service
   order-api:
     build:
       context: ../Booking-app/Booking-app/backend
@@ -110,13 +101,30 @@ services:
       RabbitMQ__Port: 5672
       RabbitMQ__Username: guest
       RabbitMQ__Password: guest
-    ports:
-      - "5003:8080"
     depends_on:
       postgres:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    networks:
+      - booking_network
+
+  nginx:
+    image: nginx:alpine
+    container_name: booking_nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - offer_images:/usr/share/nginx/html/images:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - user-api
+      - offer-api
+      - order-api
     networks:
       - booking_network
 
@@ -132,3 +140,5 @@ volumes:
     name: booking_rabbitmq_data
   offer_images:
     name: booking_offer_images
+  nginx_logs:
+    name: booking_nginx_logs
