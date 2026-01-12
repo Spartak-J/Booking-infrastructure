@@ -1,59 +1,124 @@
+version: '3.8'
+
 services:
+  # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
     container_name: booking_postgres
     restart: always
     environment:
-      POSTGRES_DB: booking_oselya
-      POSTGRES_USER: booking_admin
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_USER: ${DB_USER:-booking_admin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-Spartak999!!!!}
+      POSTGRES_DB: booking_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
     networks:
       - booking_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U booking_admin -d booking_oselya"]
+      test: ["CMD-SHELL", "pg_isready -U booking_admin -d booking_db"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  backend:
-    build: ./backend
-    container_name: booking_backend
+  # RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: booking_rabbitmq
     restart: always
     environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: booking_oselya
-      DB_USER: booking_admin
-      DB_PASSWORD: ${DB_PASSWORD}
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
     networks:
       - booking_network
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # User API Service
+  user-api:
+    build:
+      context: ../Booking-app/Booking-app/backend
+      dockerfile: booking/UserApiService/Dockerfile
+    container_name: booking_user_api
+    restart: always
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=booking_users;Username=${DB_USER:-booking_admin};Password=${DB_PASSWORD:-Spartak999!!!!}"
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Port: 5672
+      RabbitMQ__Username: guest
+      RabbitMQ__Password: guest
+    ports:
+      - "5001:8080"
     depends_on:
       postgres:
         condition: service_healthy
-
-  frontend:
-    build: ./frontend
-    container_name: booking_frontend
-    restart: always
+      rabbitmq:
+        condition: service_healthy
     networks:
       - booking_network
-    depends_on:
-      - backend
 
-  nginx:
-    image: nginx:alpine
-    container_name: booking_nginx
+  # Offer API Service
+  offer-api:
+    build:
+      context: ../Booking-app/Booking-app/backend
+      dockerfile: booking/OfferApiService/Dockerfile
+    container_name: booking_offer_api
     restart: always
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=booking_offers;Username=${DB_USER:-booking_admin};Password=${DB_PASSWORD:-Spartak999!!!!}"
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Port: 5672
+      RabbitMQ__Username: guest
+      RabbitMQ__Password: guest
     ports:
-      - "80:80"
-      - "443:443"
+      - "5002:8080"
+    volumes:
+      - offer_images:/app/wwwroot/images
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     networks:
       - booking_network
+
+  # Order API Service
+  order-api:
+    build:
+      context: ../Booking-app/Booking-app/backend
+      dockerfile: booking/OrderApiService/Dockerfile
+    container_name: booking_order_api
+    restart: always
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=booking_orders;Username=${DB_USER:-booking_admin};Password=${DB_PASSWORD:-Spartak999!!!!}"
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Port: 5672
+      RabbitMQ__Username: guest
+      RabbitMQ__Password: guest
+    ports:
+      - "5003:8080"
     depends_on:
-      - backend
-      - frontend
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - booking_network
 
 networks:
   booking_network:
@@ -62,3 +127,8 @@ networks:
 
 volumes:
   postgres_data:
+    name: booking_postgres_data
+  rabbitmq_data:
+    name: booking_rabbitmq_data
+  offer_images:
+    name: booking_offer_images

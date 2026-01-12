@@ -36,3 +36,6 @@ override.tf.json
 .terraformrc
 terraform.rc
 backup-*/
+
+# Environment variables with passwords
+.env
