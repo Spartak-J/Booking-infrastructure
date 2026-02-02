@@ -5,6 +5,7 @@ on:
     branches: [ main, develop ]
     paths:
       - '.github/workflows/dotnet-build-push.yml'
+      - 'backend/**'
   pull_request:
     branches: [ main ]
 
@@ -31,6 +32,30 @@ jobs:
             dockerfile: backend/booking/OrderApiService/Dockerfile
             context: backend
             image: booking-order-api
+          - name: location-api
+            dockerfile: backend/booking/LocationApiService/Dockerfile
+            context: backend
+            image: booking-location-api
+          - name: attraction-api
+            dockerfile: backend/booking/AttractionApiService/Dockerfile
+            context: backend
+            image: booking-attraction-api
+          - name: rentobject-api
+            dockerfile: backend/booking/RentObjectApiService/Dockerfile
+            context: backend
+            image: booking-rentobject-api
+          - name: review-api
+            dockerfile: backend/booking/ReviewApiService/Dockerfile
+            context: backend
+            image: booking-review-api
+          - name: statistic-api
+            dockerfile: backend/booking/StatisticApiService/Dockerfile
+            context: backend
+            image: booking-statistic-api
+          - name: translation-api
+            dockerfile: backend/booking/TranslationApiService/Dockerfile
+            context: backend
+            image: booking-translation-api
 
     steps:
       - name: Checkout infrastructure repo
